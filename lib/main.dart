@@ -5,7 +5,6 @@
 // This example shows how to perform a simple animation using the underlying
 // render tree.
 
-import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:async';
@@ -13,6 +12,9 @@ import 'dart:async';
 import 'package:flutter/animation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:vector_math/vector_math.dart';
+
+import './make_fbm.dart';
 
 class NonStopVSync implements TickerProvider {
   const NonStopVSync();
@@ -25,28 +27,48 @@ const redOffset = 16;
 const greenOffset = 8;
 const blueOffset = 0;
 
-const kImageDimension = 512;
+const kImageDimension = 128;
 
-int makeColor(double hue) {
-  int red = hue.toInt();
-  int green = hue.toInt();
-  int blue = hue.toInt();
-  Int8List color = Int8List.fromList([255, red, green, blue]);
+int makeColor(double time, int x, int y) {
+  // main function of GLSL.
+  int red = time.toInt() % 255;
+  int green = time.toInt() % 255;
+  int blue = time.toInt() % 255;
+  int alpha = 255;
   int resultColor = 0;
+  Vector2 p = Vector2(
+    (x.toDouble() * 2 - kImageDimension) / kImageDimension,
+    (y.toDouble() * 2 - kImageDimension) / kImageDimension,
+  );
 
-  resultColor += (color[0] << alphaOffset);
-  resultColor += (color[1] << redOffset);
-  resultColor += (color[2] << greenOffset);
-  resultColor += (color[3] << blueOffset);
+  // color processing here
+  double primary = fbm(p * 2.0);
+  Vector2 secondary = Vector2(
+    p.x + primary + time,
+    p.y + primary + time,
+  );
+  red = (fbm(secondary) * 255).toInt();
+  green = red;
+  blue = red;
+
+  // convert 8bit integers to 32bit integers
+  resultColor += (alpha << alphaOffset);
+  resultColor += (red << redOffset);
+  resultColor += (green << greenOffset);
+  resultColor += (blue << blueOffset);
 
   return resultColor;
 }
 
-Future<ui.Image> makeImage({double hue = 0}) {
+Future<ui.Image> makeImage({double time = 0}) {
   final c = Completer<ui.Image>();
   final pixels = Int32List(kImageDimension * kImageDimension);
+  int x = 0;
+  int y = 0;
   for (int i = 0; i < pixels.length; i++) {
-    pixels[i] = makeColor(hue);
+    if (x == kImageDimension - 1) y++;
+    x = i % kImageDimension;
+    pixels[i] = makeColor(time, x, y);
   }
   ui.decodeImageFromPixels(
     pixels.buffer.asUint8List(),
@@ -105,9 +127,10 @@ void main() async {
     vsync: const NonStopVSync(),
   )..repeat();
 
-  final Tween<double> hue = Tween<double>(begin: 0, end: 127);
+  double time = 0.0;
 
   animation.addListener(() async {
-    image.image = await makeImage(hue: hue.evaluate(animation));
+    image.image = await makeImage(time: time);
+    time += 0.01;
   });
 }
