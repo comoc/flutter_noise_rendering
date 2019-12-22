@@ -27,13 +27,13 @@ const redOffset = 16;
 const greenOffset = 8;
 const blueOffset = 0;
 
-const kImageDimension = 128;
+const kImageDimension = 48;
 
 int makeColor(double time, int x, int y) {
   // main function of GLSL.
-  int red = time.toInt() % 255;
-  int green = time.toInt() % 255;
-  int blue = time.toInt() % 255;
+  int red = 0;
+  int green = 0;
+  int blue = 0;
   int alpha = 255;
   int resultColor = 0;
   Vector2 p = Vector2(
@@ -66,7 +66,7 @@ Future<ui.Image> makeImage({double time = 0}) {
   int x = 0;
   int y = 0;
   for (int i = 0; i < pixels.length; i++) {
-    if (x == kImageDimension - 1) y++;
+    y = (i / kImageDimension).floor();
     x = i % kImageDimension;
     pixels[i] = makeColor(time, x, y);
   }
@@ -123,7 +123,7 @@ void main() async {
   RenderingFlutterBinding(root: root);
 
   final AnimationController animation = AnimationController(
-    duration: const Duration(milliseconds: 1800),
+    duration: const Duration(milliseconds: 800),
     vsync: const NonStopVSync(),
   )..repeat();
 
