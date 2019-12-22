@@ -20,22 +20,33 @@ class NonStopVSync implements TickerProvider {
   Ticker createTicker(TickerCallback onTick) => Ticker(onTick);
 }
 
-int xorshift32(int x) {
-  x ^= x << 13;
-  x ^= x >> 17;
-  x ^= x << 5;
-  return x;
+const alphaOffset = 24;
+const redOffset = 16;
+const greenOffset = 8;
+const blueOffset = 0;
+
+const kImageDimension = 512;
+
+int makeColor(double hue) {
+  int red = hue.toInt();
+  int green = hue.toInt();
+  int blue = hue.toInt();
+  Int8List color = Int8List.fromList([255, red, green, blue]);
+  int resultColor = 0;
+
+  resultColor += (color[0] << alphaOffset);
+  resultColor += (color[1] << redOffset);
+  resultColor += (color[2] << greenOffset);
+  resultColor += (color[3] << blueOffset);
+
+  return resultColor;
 }
 
-int seed = 0xDEADBEEF;
-
-const kImageDimension = 1024;
-
-Future<ui.Image> makeImage() {
+Future<ui.Image> makeImage({double hue = 0}) {
   final c = Completer<ui.Image>();
   final pixels = Int32List(kImageDimension * kImageDimension);
   for (int i = 0; i < pixels.length; i++) {
-    seed = pixels[i] = xorshift32(seed);
+    pixels[i] = makeColor(hue);
   }
   ui.decodeImageFromPixels(
     pixels.buffer.asUint8List(),
@@ -94,7 +105,9 @@ void main() async {
     vsync: const NonStopVSync(),
   )..repeat();
 
+  final Tween<double> hue = Tween<double>(begin: 0, end: 127);
+
   animation.addListener(() async {
-    image.image = await makeImage();
+    image.image = await makeImage(hue: hue.evaluate(animation));
   });
 }
