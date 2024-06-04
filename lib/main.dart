@@ -28,8 +28,8 @@ const greenOffset = 8;
 const blueOffset = 0;
 
 // const kImageDimension = 100;
-const kWidth = 640;
-const kHeight = 480;
+const kWidth = 1920;
+const kHeight = 1080;
 
 int makeColor(double time, int x, int y) {
   // main function of GLSL.
@@ -82,6 +82,7 @@ int makeColor(double time, int x, int y) {
 //   return c.future;
 // }
 Future<ui.Image> makeImage({double time = 0}) {
+  // FBMでの描画の代わりに、時間によって色が変わる単色画像を生成する
   final c = Completer<ui.Image>();
   final pixels = Int32List(kWidth * kHeight);
   int x = 0;
