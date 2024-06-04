@@ -27,7 +27,9 @@ const redOffset = 16;
 const greenOffset = 8;
 const blueOffset = 0;
 
-const kImageDimension = 48;
+// const kImageDimension = 100;
+const kWidth = 640;
+const kHeight = 480;
 
 int makeColor(double time, int x, int y) {
   // main function of GLSL.
@@ -37,8 +39,8 @@ int makeColor(double time, int x, int y) {
   int alpha = 255;
   int resultColor = 0;
   Vector2 p = Vector2(
-    (x.toDouble() * 2 - kImageDimension) / kImageDimension,
-    (y.toDouble() * 2 - kImageDimension) / kImageDimension,
+    (x.toDouble() * 2 - kWidth) / kWidth,
+    (y.toDouble() * 2 - kHeight) / kHeight,
   );
 
   // color processing here
@@ -48,7 +50,7 @@ int makeColor(double time, int x, int y) {
     p.y + primary + time,
   );
   red = (fbm(secondary) * 255).toInt();
-  green = red;
+  green = 0;
   blue = red;
 
   // convert 8bit integers to 32bit integers
@@ -60,20 +62,40 @@ int makeColor(double time, int x, int y) {
   return resultColor;
 }
 
+// Future<ui.Image> makeImage({double time = 0}) {
+//   final c = Completer<ui.Image>();
+//   final pixels = Int32List(kImageDimension * kImageDimension);
+//   int x = 0;
+//   int y = 0;
+//   for (int i = 0; i < pixels.length; i++) {
+//     y = (i / kImageDimension).floor();
+//     x = i % kImageDimension;
+//     pixels[i] = makeColor(time, x, y);
+//   }
+//   ui.decodeImageFromPixels(
+//     pixels.buffer.asUint8List(),
+//     kImageDimension,
+//     kImageDimension,
+//     ui.PixelFormat.rgba8888,
+//     c.complete,
+//   );
+//   return c.future;
+// }
 Future<ui.Image> makeImage({double time = 0}) {
   final c = Completer<ui.Image>();
-  final pixels = Int32List(kImageDimension * kImageDimension);
+  final pixels = Int32List(kWidth * kHeight);
   int x = 0;
   int y = 0;
   for (int i = 0; i < pixels.length; i++) {
-    y = (i / kImageDimension).floor();
-    x = i % kImageDimension;
-    pixels[i] = makeColor(time, x, y);
+    y = (i / kHeight).floor();
+    x = i % kWidth;
+    pixels[i] =
+        (time * 4294967295).toInt() % 4294967295; //makeColor(time, x, y);
   }
   ui.decodeImageFromPixels(
     pixels.buffer.asUint8List(),
-    kImageDimension,
-    kImageDimension,
+    kWidth,
+    kHeight,
     ui.PixelFormat.rgba8888,
     c.complete,
   );
@@ -81,8 +103,6 @@ Future<ui.Image> makeImage({double time = 0}) {
 }
 
 void main() async {
-  const imageSize = 500.0;
-
   // We first create a render object that represents a green box.
   // final RenderBox green = RenderDecoratedBox(
   //     decoration: const BoxDecoration(color: Color(0xFFFFAA00)));
@@ -94,11 +114,17 @@ void main() async {
   //   child: green,
   // );
 
-  final RenderImage image = RenderImage(
-    width: imageSize,
-    height: imageSize,
-    image: await makeImage(),
-  );
+  // final RenderImage image = RenderImage(
+  //   width: imageSize,
+  //   height: imageSize,
+  //   image: await makeImage(),
+  // );
+  final ui.Image imageFuture = await makeImage();
+  final double w = imageFuture.width.toDouble();
+  final double h = imageFuture.height.toDouble();
+  final RenderImage image =
+      RenderImage(image: imageFuture); //await makeImage());
+
   // Third, we wrap the sized green square in a render object that applies rotation
   // transform before painting its child. Each frame of the animation, we'll
   // update the transform of this render object to cause the green square to
@@ -110,8 +136,7 @@ void main() async {
   // );
 
   final RenderBox imageWrap = RenderConstrainedBox(
-    additionalConstraints:
-        const BoxConstraints.tightFor(width: imageSize, height: imageSize),
+    additionalConstraints: BoxConstraints.tightFor(width: w, height: h),
     child: image,
   );
   // Finally, we center the spinning green square...
